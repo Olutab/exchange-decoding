@@ -1,0 +1,14 @@
+{
+  "name": "exchange-decoding",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+    "scripts": {
+    "build": "node scripts/compile-matrix.mjs && cd react-hook && npm install && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
