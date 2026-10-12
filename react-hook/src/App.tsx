@@ -20,6 +20,12 @@ const profiles = [
 
 const heroWords = ['Decoded.', 'Secured.', 'Audited.', 'Quantified.'];
 
+const TIER_ALIAS: Record<string, string> = {
+  'INERT': 'Escrow-Backed',
+  'REACTION-RISK': 'Verify-First',
+  'VOLATILE': 'No-Recourse',
+};
+
 function useCountUp(target: number, duration = 1800): number {
   const [value, setValue] = useState(0);
   useEffect(() => {
@@ -65,7 +71,9 @@ export default function App() {
   const volatileEntities = data.filter((e) => e.safety_alert_tier === 'VOLATILE');
 
   const filtered = data.filter((entity) => {
-    if (!entity.entity_name.toLowerCase().includes(query.toLowerCase())) return false;
+    const q = query.toLowerCase();
+    const hay = `${entity.entity_name} ${entity.safety_alert_tier} ${TIER_ALIAS[entity.safety_alert_tier]} ${entity.functional_category}`.toLowerCase();
+    if (!hay.includes(q)) return false;
     if (profile.id === 'chargeback' && entity.safety_alert_tier === 'VOLATILE') return false;
     if (profile.id === 'budget' && entity.functional_category === 'escrow_intermediary') return false;
     return true;
@@ -89,7 +97,7 @@ export default function App() {
             <span className="stat-label">Risk signals decoded</span>
           </div>
           <div className="stat">
-            <span className="stat-num">{data.length || 60}</span>
+            <span className="stat-num">{data.length || 120}</span>
             <span className="stat-label">Entities under audit</span>
           </div>
           <div className="stat">
@@ -150,7 +158,7 @@ export default function App() {
           {[
             ['Ingest', 'The 15-column trust matrix is compiled to a flat JSON feed at build time. No databases, no trackers.'],
             ['Cross-reference', 'Your profile is matched against tier ratings, fee bands and conflict vectors entirely in your browser.'],
-            ['Flag', 'Any VOLATILE tier or profile conflict raises an immediate disruption banner before you commit capital.'],
+            ['Flag', 'Any NO-RECOURSE tier or profile conflict raises an immediate disruption banner before you commit capital.'],
           ].map(([title, body], i) => (
             <article className="panel how-card" key={title}>
               <span className="how-num">0{i + 1}</span>
@@ -168,8 +176,8 @@ export default function App() {
             >
               <div className="card-header">
                 <h3>{entity.entity_name}</h3>
-                <span className={`badge ${entity.safety_alert_tier.toLowerCase()}`}>
-                  {entity.safety_alert_tier}
+                <span className={`badge ${entity.safety_alert_tier.toLowerCase()}`} title={entity.safety_alert_tier}>
+                  {TIER_ALIAS[entity.safety_alert_tier]}
                 </span>
               </div>
               <p className="meta">
@@ -178,10 +186,10 @@ export default function App() {
               <p className="note">{entity.clear_mechanism_note}</p>
 
               {entity.safety_alert_tier === 'VOLATILE' && (
-                <div className="banner danger">⚠ Watch out for {entity.routine_conflict}.</div>
+                <div className="banner danger">⚠ NO-RECOURSE venue — watch out for {entity.routine_conflict}.</div>
               )}
               {profile.id === 'highvalue' && entity.safety_alert_tier === 'REACTION-RISK' && (
-                <div className="banner caution">⚠ Verification window enforced — confirm escrow hold before release.</div>
+                <div className="banner caution">⚠ VERIFY-FIRST venue — enforce the escrow hold window before release.</div>
               )}
             </article>
           ))}
