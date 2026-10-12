@@ -346,7 +346,32 @@ if (fs.existsSync(ogSource)) fs.copyFileSync(ogSource, path.join(OUT_DIR, 'og-im
 for (const f of fs.readdirSync(ROOT_DIR)) {
   if (/^google[0-9a-f]+\.html$/.test(f)) fs.copyFileSync(path.join(ROOT_DIR, f), path.join(OUT_DIR, f));
 }
-
+// Generate Root Homepage for SEO
+const rootHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
+<title>The Exchange Trust Index</title>
+<meta name="description" content="Independent audits of alternative asset marketplaces. Decoded, secured, and verified.">
+<link rel="canonical" href="${SITE_URL}/">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><h1>The Exchange Trust Index</h1><p>Independent Audit Layer · Not Financial Advice</p></header>
+<main>
+<p class="ai-hook">Welcome to the Exchange Trust Index. We provide independent, quantitative audits of alternative asset marketplaces, gift card exchanges, and crypto on-ramps. Our mission is to decode opaque marketplaces and surface trust signals for users.</p>
+<div style="display:flex; gap:20px; margin-top:40px; flex-wrap:wrap;">
+  <a class="hub-cta" href="/directory/">Browse Exchange Directory →</a>
+  <a class="hub-cta" href="/app/">Open Interactive Calculator →</a>
+</div>
+</main>
+${FOOTER}
+</body>
+</html>`;
+fs.writeFileSync(path.join(OUT_DIR, 'index.html'), rootHtml);
+sitemapItems.push(`${SITE_URL}/`);
 console.log(`\n[SUCCESS] Build Engine Complete.`);
 console.log(`- Entities compiled: ${rows.length}`);
 console.log(`- Advisory posts: ${EDITORIAL.length}`);
