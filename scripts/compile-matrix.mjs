@@ -186,40 +186,46 @@ const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const pageInfo = document.getElementById('pageInfo');
 
-function applyPagination() {
-  const filtered = items.filter(li => li.style.display !== 'none');
-  const totalFiltered = filtered.length;
-  const totalPagesNow = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
-  if (currentPage > totalPagesNow) currentPage = totalPagesNow;
+// Track filter state SEPARATELY from pagination state
+function applyFilter() {
+  const f = filterInput.value.toLowerCase();
   items.forEach(li => {
-    if (li.style.display === 'none') { li.dataset.paginated = 'hidden'; return; }
-    li.dataset.paginated = 'visible';
+    const hay = (li.dataset.search || li.innerText).toLowerCase();
+    li.dataset.filtered = hay.includes(f) ? 'yes' : 'no';
   });
-  const visible = items.filter(li => li.dataset.paginated === 'visible');
-  visible.forEach((li, i) => {
-    li.style.display = (i >= (currentPage - 1) * ITEMS_PER_PAGE && i < currentPage * ITEMS_PER_PAGE) ? 'block' : 'none';
-  });
-  pageInfo.textContent = \`Page \${currentPage} of \${totalPagesNow}\`;
+  currentPage = 1;
+  applyPagination();
+}
+
+function applyPagination() {
+  // Only count items that passed the filter
+  const pool = items.filter(li => li.dataset.filtered !== 'no');
+  const totalInPool = pool.length;
+  const totalPagesNow = Math.max(1, Math.ceil(totalInPool / ITEMS_PER_PAGE));
+  if (currentPage > totalPagesNow) currentPage = totalPagesNow;
+  if (currentPage < 1) currentPage = 1;
+
+  // Hide everything first
+  items.forEach(li => { li.style.display = 'none'; });
+
+  // Show only the current page's slice of the filtered pool
+  const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  pool.slice(start, end).forEach(li => { li.style.display = 'block'; });
+
+  pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPagesNow;
   prevBtn.disabled = currentPage === 1;
   nextBtn.disabled = currentPage >= totalPagesNow;
 }
 
-filterInput.addEventListener('keyup', (e) => {
-  const f = e.target.value.toLowerCase();
-  items.forEach(li => {
-    const hay = (li.dataset.search || li.innerText).toLowerCase();
-    li.style.display = hay.includes(f) ? 'block' : 'none';
-  });
-  currentPage = 1;
-  applyPagination();
-});
-
+filterInput.addEventListener('keyup', applyFilter);
 prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); } });
-nextBtn.addEventListener('click', () => { currentPage++; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); });
+nextBtn.addEventListener('click', () => { if (currentPage < Math.ceil(items.filter(li => li.dataset.filtered !== 'no').length / ITEMS_PER_PAGE)) { currentPage++; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); } });
 
+// Initialize: mark all as filtered-in, then paginate
+items.forEach(li => { li.dataset.filtered = 'yes'; });
 applyPagination();
-</script>
-</body>
+</script></body>
 </html>`;
 fs.writeFileSync(path.join(OUT_DIR, 'directory', 'index.html'), directoryHtml);
 sitemapItems.push(`${SITE_URL}/directory/`);
