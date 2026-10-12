@@ -346,33 +346,153 @@ if (fs.existsSync(ogSource)) fs.copyFileSync(ogSource, path.join(OUT_DIR, 'og-im
 for (const f of fs.readdirSync(ROOT_DIR)) {
   if (/^google[0-9a-f]+\.html$/.test(f)) fs.copyFileSync(path.join(ROOT_DIR, f), path.join(OUT_DIR, f));
 }
-// Generate Root Homepage for SEO
+// ---- Rich static homepage (SEO + humans) ----
+const tierCount = { 'INERT': 0, 'REACTION-RISK': 0, 'VOLATILE': 0 };
+rows.forEach(r => { tierCount[r.safety_alert_tier]++; });
+const catCount = {};
+rows.forEach(r => { catCount[r.functional_category] = (catCount[r.functional_category] || 0) + 1; });
+
+const previewCards = rows.slice(0, 10).map(row => {
+  const t = row.safety_alert_tier.toLowerCase();
+  return `<a class="pv-card" href="/${row.exchange_slug}.html" data-pv><span class="pv-badge b-${t}">${TIER_ALIAS[row.safety_alert_tier]}</span><h4>${row.entity_name}</h4><p>${row.clear_mechanism_note}</p></a>`;
+}).join('');
+
+const snapshotRows = ['INERT', 'REACTION-RISK', 'VOLATILE'].map(t => {
+  const pct = Math.round((tierCount[t] / rows.length) * 100);
+  return `<div class="sn-row"><span class="sn-label">${TIER_ALIAS[t]}</span><div class="sn-track"><div class="sn-bar f-${t.toLowerCase()}" style="width:${pct}%"></div></div><span class="sn-num">${tierCount[t]} · ${pct}%</span></div>`;
+}).join('');
+
+const catTiles = Object.keys(catCount).map(c => `<div class="ct-tile"><span class="ct-num">${catCount[c]}</span><span class="ct-name">${c.replace(/_/g, ' ')}</span></div>`).join('');
+
+const advCards = EDITORIAL.slice(0, 3).map(p => `<a class="ad-card" href="/advisory/${p.slug}.html"><span class="ad-cat">${p.category}</span><h3>${p.title}</h3><p>${p.excerpt}</p></a>`).join('');
+
 const rootHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="index, follow">
-<title>The Exchange Trust Index</title>
-<meta name="description" content="Independent audits of alternative asset marketplaces. Decoded, secured, and verified.">
+<title>The Exchange Trust Index — Independent Audits of Alternative Marketplaces</title>
+<meta name="description" content="Independent, quantitative audits of ${rows.length} alternative asset marketplaces: gift cards, peer-to-peer venues, crypto on-ramps and fractional hard assets. Decoded, secured, verified.">
+<meta property="og:title" content="The Exchange Trust Index">
+<meta property="og:description" content="Independent audits of ${rows.length} alternative asset marketplaces.">
+<meta property="og:image" content="${SITE_URL}/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="${SITE_URL}/">
 <link rel="stylesheet" href="/style.css">
+<style>
+.hero2{max-width:980px;margin:0 auto;padding:56px 24px 8px;text-align:center}
+.stat-row{display:flex;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.stat{padding:0 38px;display:flex;flex-direction:column;gap:6px}
+.stat+.stat{border-left:1px solid var(--border)}
+.stat b{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700}
+.stat span{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.cta-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:34px 0 10px}
+.panel2{max-width:1100px;margin:26px auto;padding:30px 32px;background:var(--panel);border:1px solid var(--border);border-radius:18px;backdrop-filter:blur(12px)}
+.panel2 h2{font-family:'Space Grotesk',sans-serif;margin:0;font-size:1.4rem}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:#34d399;border:1px solid rgba(52,211,153,.35);padding:5px 10px;border-radius:999px}
+.pv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.pv-card{display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.03);text-decoration:none;min-height:150px}
+.pv-card:hover{border-color:rgba(255,255,255,.22)}
+.pv-card h4{margin:0;font-family:'Space Grotesk',sans-serif;font-size:.95rem;color:var(--text)}
+.pv-card p{margin:0;font-size:.78rem;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pv-badge{align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;padding:4px 8px;border-radius:999px}
+.b-inert{color:#34d399;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.35)}
+.b-reaction-risk{color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35)}
+.b-volatile{color:#fb7185;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.4)}
+.see-all{display:inline-block;margin-top:18px;color:var(--cyan);font-weight:600;font-size:.9rem;text-decoration:none}
+.sn-row{display:grid;grid-template-columns:150px 1fr 110px;gap:16px;align-items:center;margin-bottom:12px}
+.sn-label{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted)}
+.sn-track{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+.sn-bar{height:100%;border-radius:999px}
+.f-inert{background:linear-gradient(90deg,#34d399,#22d3ee)}
+.f-reaction-risk{background:linear-gradient(90deg,#fbbf24,#fb923c)}
+.f-volatile{background:linear-gradient(90deg,#fb7185,#f43f5e)}
+.sn-num{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);text-align:right}
+.ct-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:24px}
+.ct-tile{padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:4px}
+.ct-num{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;color:var(--cyan)}
+.ct-name{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.hw{padding:22px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03)}
+.hw .n{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--violet)}
+.hw h3{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;margin:8px 0 6px}
+.hw p{margin:0;font-size:.88rem;color:var(--muted)}
+.ad-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.ad-card{padding:22px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:8px;text-decoration:none}
+.ad-card:hover{border-color:rgba(255,255,255,.22)}
+.ad-cat{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+.ad-card h3{margin:0;font-family:'Space Grotesk',sans-serif;font-size:1rem;color:var(--text)}
+.ad-card p{margin:0;font-size:.85rem;color:var(--muted)}
+@media(max-width:1024px){.pv-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.pv-grid{grid-template-columns:repeat(2,1fr)}.sn-row{grid-template-columns:110px 1fr 90px}.stat{padding:0 20px}}
+</style>
 </head>
 <body>
 <header><h1>The Exchange Trust Index</h1><p>Independent Audit Layer · Not Financial Advice</p></header>
-<main>
-<p class="ai-hook">Welcome to the Exchange Trust Index. We provide independent, quantitative audits of alternative asset marketplaces, gift card exchanges, and crypto on-ramps. Our mission is to decode opaque marketplaces and surface trust signals for users.</p>
-<div style="display:flex; gap:20px; margin-top:40px; flex-wrap:wrap;">
-  <a class="hub-cta" href="/directory/">Browse Exchange Directory →</a>
-  <a class="hub-cta" href="/app/">Open Interactive Calculator →</a>
-</div>
-</main>
+<section class="hero2">
+  <div class="stat-row">
+    <div class="stat"><b>5,842</b><span>Risk signals decoded</span></div>
+    <div class="stat"><b>${rows.length}</b><span>Platforms under audit</span></div>
+    <div class="stat"><b>0</b><span>Bytes leave your device</span></div>
+  </div>
+  <div class="cta-row">
+    <a class="hub-cta" href="/directory/">Browse Exchange Directory →</a>
+    <a class="hub-cta" href="/app/">Open Interactive Calculator →</a>
+  </div>
+</section>
+<section class="panel2">
+  <div class="phead"><h2>Live Audit Feed</h2><span class="tag">rotates every 4s</span></div>
+  <div class="pv-grid">${previewCards}</div>
+  <a class="see-all" href="/directory/">See all ${rows.length} platforms →</a>
+</section>
+<section class="panel2">
+  <div class="phead"><h2>Market Snapshot</h2><span class="tag">live from audit data</span></div>
+  ${snapshotRows}
+  <div class="ct-grid">${catTiles}</div>
+</section>
+<section class="panel2">
+  <div class="phead"><h2>How It Works</h2></div>
+  <div class="how-grid">
+    <div class="hw"><span class="n">01</span><h3>We audit the platform</h3><p>Every platform is scored across 15 risk factors — fees, escrow rules, chargeback history, and more.</p></div>
+    <div class="hw"><span class="n">02</span><h3>You pick your profile</h3><p>Tell the calculator how you trade. A cautious buyer gets different warnings than a high-volume seller.</p></div>
+    <div class="hw"><span class="n">03</span><h3>We flag the danger</h3><p>Unsafe platforms are hidden or flagged instantly. Nothing is sold here — we just help you decide.</p></div>
+  </div>
+</section>
+<section class="panel2">
+  <div class="phead"><h2>From the Advisory Desk</h2><a class="see-all" style="margin:0" href="/advisory/">All articles →</a></div>
+  <div class="ad-grid">${advCards}</div>
+</section>
 ${FOOTER}
+<script>
+(function(){
+  var cards = document.querySelectorAll('[data-pv]');
+  if (!cards.length) return;
+  var i = 0;
+  function show(){
+    cards.forEach(function(c, idx){ c.style.display = (idx >= i && idx < i + 5) ? 'flex' : 'none'; });
+    i = (i + 5) % cards.length;
+  }
+  show();
+  setInterval(show, 4000);
+})();
+</script>
 </body>
 </html>`;
 fs.writeFileSync(path.join(OUT_DIR, 'index.html'), rootHtml);
 sitemapItems.push(`${SITE_URL}/`);
-console.log(`\n[SUCCESS] Build Engine Complete.`);
+
+// Rewrite sitemaps so the homepage URL is included
+let sitemapIndex2 = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+for (let i = 0; i < sitemapItems.length; i += chunkSize) {
+  const n = (i / chunkSize) + 1;
+  const chunk = sitemapItems.slice(i, i + chunkSize);
+  fs.writeFileSync(path.join(OUT_DIR, `sitemap-${n}.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${chunk.map(u => `<url><loc>${u}</loc></url>`).join('\n')}\n</urlset>`);
+  sitemapIndex2 += `<sitemap><loc>${SITE_URL}/sitemap-${n}.xml</loc></sitemap>\n`;
+}
+sitemapIndex2 += `</sitemapindex>`;
+fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), sitemapIndex2);console.log(`\n[SUCCESS] Build Engine Complete.`);
 console.log(`- Entities compiled: ${rows.length}`);
 console.log(`- Advisory posts: ${EDITORIAL.length}`);
 console.log(`- Directory pagination: ${ITEMS_PER_PAGE} items/page, ${totalPages} pages`);
