@@ -220,3 +220,113 @@ body {
   .control-panel, .snapshot { padding: 26px 22px; }
   .dist-row { grid-template-columns: 110px 1fr 90px; }
 }
+/* ============================================
+   LIVE AUDIT FEED - ROTATING PREVIEW CARDS
+   ============================================ */
+.preview-section {
+  padding: 34px 36px;
+  margin-bottom: 34px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  text-decoration: none;
+  transition: transform 0.22s ease, border-color 0.22s ease;
+  min-height: 140px;
+}
+
+.preview-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.preview-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  align-self: flex-start;
+  display: inline-block;
+}
+
+.preview-badge.inert {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.10);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.preview-badge.reaction-risk {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.10);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.preview-badge.volatile {
+  color: #fb7185;
+  background: rgba(251, 113, 133, 0.12);
+  border: 1px solid rgba(251, 113, 133, 0.4);
+}
+
+.preview-card h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-0);
+  line-height: 1.3;
+}
+
+.preview-note {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.see-all-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: var(--cyan);
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.see-all-link:hover {
+  color: var(--violet);
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 1024px) {
+  .preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .preview-section {
+    padding: 26px 22px;
+  }
+}
