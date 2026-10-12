@@ -12,8 +12,16 @@ interface Entity {
   clear_mechanism_note: string;
 }
 
+interface Advisory {
+  slug: string;
+  title: string;
+  category: string;
+  excerpt: string;
+  date: string;
+}
+
 const profiles = [
-  { id: 'chargeback', label: 'Chargeback-Sensitive Buyer', riskFocus: 'Suppresses every VOLATILE-tier venue and ghost-inventory vector.' },
+  { id: 'chargeback', label: 'Chargeback-Sensitive Buyer', riskFocus: 'Suppresses every NO-RECOURSE venue and ghost-inventory vector.' },
   { id: 'highvalue', label: 'High-Value Seller', riskFocus: 'Demands enforced escrow holds and strict verification windows on large transfers.' },
   { id: 'budget', label: 'Tight Budget Optimizer', riskFocus: 'Strips high-fee intermediaries and spread-heavy routing layers.' },
 ];
@@ -44,6 +52,7 @@ function useCountUp(target: number, duration = 1800): number {
 
 export default function App() {
   const [data, setData] = useState<Entity[]>([]);
+  const [posts, setPosts] = useState<Advisory[]>([]);
   const [profile, setProfile] = useState(profiles[0]);
   const [query, setQuery] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
@@ -55,6 +64,10 @@ export default function App() {
       .then((res) => res.json())
       .then(setData)
       .catch((err) => console.error('Matrix feed unavailable:', err));
+    fetch(`${import.meta.env.BASE_URL}advisory.json`)
+      .then((res) => res.json())
+      .then(setPosts)
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -69,6 +82,15 @@ export default function App() {
   }, []);
 
   const volatileEntities = data.filter((e) => e.safety_alert_tier === 'VOLATILE');
+  const tierCounts = {
+    INERT: data.filter((e) => e.safety_alert_tier === 'INERT').length,
+    'REACTION-RISK': data.filter((e) => e.safety_alert_tier === 'REACTION-RISK').length,
+    VOLATILE: data.filter((e) => e.safety_alert_tier === 'VOLATILE').length,
+  };
+  const catCounts = data.reduce<Record<string, number>>((acc, e) => {
+    acc[e.functional_category] = (acc[e.functional_category] || 0) + 1;
+    return acc;
+  }, {});
 
   const filtered = data.filter((entity) => {
     const q = query.toLowerCase();
@@ -97,13 +119,16 @@ export default function App() {
             <span className="stat-label">Risk signals decoded</span>
           </div>
           <div className="stat">
-            <span className="stat-num">{data.length || 120}</span>
+            <span className="stat-num">{data.length || 180}</span>
             <span className="stat-label">Entities under audit</span>
           </div>
           <div className="stat">
             <span className="stat-num">0</span>
             <span className="stat-label">Bytes leave your device</span>
           </div>
+        </div>
+        <div className="cta-row">
+          <a className="hub-cta" href="/directory/">Browse Full Entity Directory →</a>
         </div>
       </header>
 
@@ -124,6 +149,33 @@ export default function App() {
       </div>
 
       <main className="content">
+        <section className="snapshot panel">
+          <div className="panel-head">
+            <h2>Market Integrity Snapshot</h2>
+            <span className="panel-tag">computed live from audit data</span>
+          </div>
+          {(['INERT', 'REACTION-RISK', 'VOLATILE'] as const).map((tier) => {
+            const pct = data.length ? Math.round((tierCounts[tier] / data.length) * 100) : 0;
+            return (
+              <div className="dist-row" key={tier}>
+                <span className="dist-label">{TIER_ALIAS[tier]}</span>
+                <div className="dist-track">
+                  <div className={`dist-bar tier-${tier.toLowerCase()}`} style={{ width: `${pct}%` }} />
+                </div>
+                <span className="dist-num">{tierCounts[tier]} · {pct}%</span>
+              </div>
+            );
+          })}
+          <div className="cat-grid">
+            {Object.entries(catCounts).map(([cat, count]) => (
+              <div className="cat-tile" key={cat}>
+                <span className="cat-count">{count}</span>
+                <span className="cat-name">{cat.replace(/_/g, ' ')}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section id="calculator" className="panel control-panel">
           <div className="panel-head">
             <h2>Risk Profile Optimizer</h2>
@@ -197,7 +249,33 @@ export default function App() {
             <p className="no-results">No entity satisfies this profile's risk parameters.</p>
           )}
         </section>
+
+        <section className="adv-section">
+          <div className="panel-head">
+            <h2>From the Advisory Desk</h2>
+            <a className="more-link" href="/advisory/">All editorial →</a>
+          </div>
+          <div className="adv-grid">
+            {posts.slice(0, 3).map((p) => (
+              <a className="panel adv-card" href={`/advisory/${p.slug}.html`} key={p.slug}>
+                <span className="adv-cat">{p.category}</span>
+                <h3>{p.title}</h3>
+                <p>{p.excerpt}</p>
+              </a>
+            ))}
+          </div>
+        </section>
       </main>
+
+      <footer className="site-foot">
+        <nav>
+          <a href="/directory/">Index</a>
+          <a href="/advisory/">Advisory</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
+          <a href="/privacy.html">Privacy</a>
+        </nav>
+      </footer>
 
       {showSticky && (
         <a className="sticky-mobile-btn" href="#calculator">
