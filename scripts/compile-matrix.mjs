@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EDITORIAL } from './editorial-data.mjs';
+import { generateOgImage } from './generate-og.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,7 +44,7 @@ for (const row of rows) {
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 fs.mkdirSync(REACT_PUBLIC, { recursive: true });
-fs.rmSync(path.join(OUT_DIR, 'react'), { recursive: true, force: true });
+fs.rmSync(path.join(OUT_DIR, 'app'), { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT_DIR, 'directory'), { recursive: true });
 fs.mkdirSync(path.join(OUT_DIR, 'advisory'), { recursive: true });
 
@@ -115,6 +116,7 @@ for (const row of rows) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
 <title>${row.entity_name} — ${BRAND}</title>
 <meta name="description" content="${row.clear_mechanism_note}">
 <meta property="og:title" content="${row.entity_name} — ${BRAND}">
@@ -147,7 +149,6 @@ ${FOOTER}
   indexListHtml += `<li data-search="${search}"><a class="hub-card" href="/${row.exchange_slug}.html"><span class="hub-name">${row.entity_name}</span><span class="hub-tier ${row.safety_alert_tier.toLowerCase()}" title="${row.safety_alert_tier}">${alias}</span></a></li>`;
 }
 
-// DIRECTORY with pagination (30 per page)
 const ITEMS_PER_PAGE = 30;
 const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE);
 
@@ -156,6 +157,7 @@ const directoryHtml = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
 <title>Exchange Directory — ${BRAND}</title>
 <meta name="description" content="Full index of ${rows.length} audited alternative exchange platforms with tier ratings and conflict vectors.">
 <link rel="canonical" href="${SITE_URL}/directory/">
@@ -166,7 +168,7 @@ ${HUB_STYLE}
 <header><h1>Exchange Directory</h1><p>${BRAND} · ${rows.length} Platforms Under Audit</p></header>
 <main class="hub">
 <a class="top-back" href="/">← Back to Home</a>
-<a class="hub-cta" href="/">Open the Interactive Calculator →</a>
+<a class="hub-cta" href="/app/">Open the Interactive Calculator →</a>
 <input type="text" id="filter" placeholder="Filter by platform, tier, or category…">
 <ul id="list">${indexListHtml}</ul>
 <div class="pagination">
@@ -186,7 +188,6 @@ const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const pageInfo = document.getElementById('pageInfo');
 
-// Track filter state SEPARATELY from pagination state
 function applyFilter() {
   const f = filterInput.value.toLowerCase();
   items.forEach(li => {
@@ -198,17 +199,14 @@ function applyFilter() {
 }
 
 function applyPagination() {
-  // Only count items that passed the filter
   const pool = items.filter(li => li.dataset.filtered !== 'no');
   const totalInPool = pool.length;
   const totalPagesNow = Math.max(1, Math.ceil(totalInPool / ITEMS_PER_PAGE));
   if (currentPage > totalPagesNow) currentPage = totalPagesNow;
   if (currentPage < 1) currentPage = 1;
 
-  // Hide everything first
   items.forEach(li => { li.style.display = 'none'; });
 
-  // Show only the current page's slice of the filtered pool
   const start = (currentPage - 1) * ITEMS_PER_PAGE;
   const end = start + ITEMS_PER_PAGE;
   pool.slice(start, end).forEach(li => { li.style.display = 'block'; });
@@ -222,10 +220,10 @@ filterInput.addEventListener('keyup', applyFilter);
 prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); } });
 nextBtn.addEventListener('click', () => { if (currentPage < Math.ceil(items.filter(li => li.dataset.filtered !== 'no').length / ITEMS_PER_PAGE)) { currentPage++; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); } });
 
-// Initialize: mark all as filtered-in, then paginate
 items.forEach(li => { li.dataset.filtered = 'yes'; });
 applyPagination();
-</script></body>
+</script>
+</body>
 </html>`;
 fs.writeFileSync(path.join(OUT_DIR, 'directory', 'index.html'), directoryHtml);
 sitemapItems.push(`${SITE_URL}/directory/`);
@@ -238,6 +236,7 @@ for (const post of EDITORIAL) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
 <title>${post.title} — Advisory</title>
 <meta name="description" content="${post.excerpt}">
 <meta property="og:title" content="${post.title}">
@@ -270,6 +269,7 @@ const advisoryIndex = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
 <title>Advisory Index — ${BRAND}</title>
 <meta name="description" content="Operational guidance from the Trust & Escrow analysis desk. Informational only.">
 <link rel="canonical" href="${SITE_URL}/advisory/">
@@ -300,6 +300,7 @@ for (const [slug, title, body] of extraPages) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
 <title>${title} — ${BRAND}</title>
 <meta name="description" content="${title} page of ${BRAND}.">
 <link rel="canonical" href="${SITE_URL}/${slug}.html">
@@ -337,6 +338,8 @@ fs.writeFileSync(path.join(DATA_DIR, 'exchange_matrix.json'), JSON.stringify(row
 fs.writeFileSync(path.join(REACT_PUBLIC, 'exchange_matrix.json'), JSON.stringify(rows, null, 2));
 fs.writeFileSync(path.join(DATA_DIR, 'advisory.json'), JSON.stringify(EDITORIAL, null, 2));
 fs.writeFileSync(path.join(REACT_PUBLIC, 'advisory.json'), JSON.stringify(EDITORIAL, null, 2));
+
+generateOgImage(rows.length);
 
 const ogSource = path.join(DATA_DIR, 'og-image.png');
 if (fs.existsSync(ogSource)) fs.copyFileSync(ogSource, path.join(OUT_DIR, 'og-image.png'));
