@@ -13,6 +13,7 @@ const OUT_DIR = path.join(ROOT_DIR, 'dist');
 const REACT_PUBLIC = path.join(ROOT_DIR, 'react-hook/public');
 
 const SITE_URL = process.env.SITE_URL || 'https://yourdomain.com';
+const BRAND = 'The Exchange Trust Index';
 
 const VALID_CATEGORIES = ['direct_platform', 'escrow_intermediary', 'peer_to_peer_marketplace', 'gift_card_specialist', 'crypto_on_ramp', 'multi_asset_aggregator'];
 const VALID_TIERS = ['INERT', 'REACTION-RISK', 'VOLATILE'];
@@ -49,7 +50,7 @@ fs.mkdirSync(path.join(OUT_DIR, 'advisory'), { recursive: true });
 const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap');:root{--bg:#05070c;--panel:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);--text:#eef2f8;--muted:#9aa4b2;--cyan:#22d3ee;--violet:#818cf8}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.75;background:radial-gradient(1000px 460px at 88% -12%,rgba(129,140,248,.15),transparent 62%),radial-gradient(820px 420px at 4% 8%,rgba(34,211,238,.10),transparent 60%),var(--bg)}header,main{max-width:880px;margin:0 auto;padding:0 24px}header{padding:64px 24px 30px;border-bottom:1px solid var(--border)}header h1{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;letter-spacing:-.02em;margin:0 0 8px}header p{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin:0}.ai-hook{margin:40px 0 0;padding:24px 28px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:16px;backdrop-filter:blur(12px);font-size:1.04rem}.cellular,.regimen{color:var(--muted);margin:24px 4px}.cellular strong,.regimen strong{color:var(--text)}details{margin:36px 0 24px;padding:8px 24px;background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px)}summary{cursor:pointer;padding:14px 0;color:var(--cyan);font-weight:600}.foot{margin:0 0 40px}.disclaimer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:32px}a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(34,211,238,.35)}a:hover{color:var(--violet)}.site-foot{max-width:880px;margin:0 auto;padding:20px 24px 64px}.site-foot nav{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:26px}.site-foot a{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);border-bottom:none}.site-foot a:hover{color:var(--cyan)}.hub-cta{display:inline-block;margin:6px 0 26px;padding:14px 26px;border-radius:999px;background:linear-gradient(94deg,var(--cyan),var(--violet));color:#041014;font-weight:700;border-bottom:none}.hub-cta:hover{color:#041014;filter:brightness(1.1)}`;
 fs.writeFileSync(path.join(OUT_DIR, 'style.css'), css);
 
-const FOOTER = `<footer class="site-foot"><nav><a href="/directory/">Index</a><a href="/advisory/">Advisory</a><a href="/about.html">About</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy</a></nav></footer>`;
+const FOOTER = `<footer class="site-foot"><nav><a href="/">Home</a><a href="/directory/">Exchange Directory</a><a href="/advisory/">Advisory</a><a href="/about.html">About</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy</a></nav></footer>`;
 
 const HUB_STYLE = `<style>
 .hub{max-width:980px;margin:0 auto;padding:48px 24px 40px}
@@ -64,6 +65,13 @@ const HUB_STYLE = `<style>
 .hub-tier.reaction-risk{color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35)}
 .hub-tier.volatile{color:#fb7185;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.4)}
 .hub-tier.cat{color:var(--cyan);background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.35)}
+.top-back{display:inline-block;margin-bottom:20px;font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);border:1px solid rgba(34,211,238,.4);padding:8px 16px;border-radius:999px;text-decoration:none}
+.top-back:hover{background:rgba(34,211,238,.08)}
+.pagination{display:flex;justify-content:center;align-items:center;gap:16px;margin:40px 0 20px}
+.pagination button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.85rem}
+.pagination button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+.pagination button:disabled{opacity:.3;cursor:not-allowed}
+.pagination .page-info{font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--muted)}
 </style>`;
 
 const allEntities = rows.map(r => ({ slug: r.exchange_slug, name: r.entity_name }));
@@ -107,9 +115,9 @@ for (const row of rows) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${row.entity_name} — Exchange Risk & Trust Decode</title>
+<title>${row.entity_name} — ${BRAND}</title>
 <meta name="description" content="${row.clear_mechanism_note}">
-<meta property="og:title" content="${row.entity_name} — Exchange Risk Matrix">
+<meta property="og:title" content="${row.entity_name} — ${BRAND}">
 <meta property="og:description" content="${row.clear_mechanism_note}">
 <meta property="og:image" content="${SITE_URL}/og-image.png">
 <meta property="og:type" content="article">
@@ -120,14 +128,14 @@ for (const row of rows) {
 <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 </head>
 <body>
-<header><h1>${row.entity_name}</h1><p>Trust & Escrow Authority · ${alias}</p></header>
+<header><h1>${row.entity_name}</h1><p>${BRAND} · ${alias}</p></header>
 <main>
 <p class="ai-hook">${linkedP1}</p>
 <p class="cellular">${linkedP2}</p>
 <p class="regimen">${linkedP3}</p>
 <details><summary>Is ${row.entity_name} safe for ${row.target_user_profile}?</summary><p>It carries a <strong>${alias}</strong> (${row.safety_alert_tier}) rating. ⚠️ Watch out for ${row.routine_conflict}.</p></details>
 <p class="disclaimer">This material is informational only and is not financial, legal, or investment advice.</p>
-<p class="foot"><a href="/directory/">← Back to Entity Directory</a></p>
+<p class="foot"><a href="/directory/">← Back to Exchange Directory</a></p>
 </main>
 ${FOOTER}
 </body>
@@ -139,33 +147,77 @@ ${FOOTER}
   indexListHtml += `<li data-search="${search}"><a class="hub-card" href="/${row.exchange_slug}.html"><span class="hub-name">${row.entity_name}</span><span class="hub-tier ${row.safety_alert_tier.toLowerCase()}" title="${row.safety_alert_tier}">${alias}</span></a></li>`;
 }
 
+// DIRECTORY with pagination (30 per page)
+const ITEMS_PER_PAGE = 30;
+const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE);
+
 const directoryHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entity Directory — Alternative Exchange Risk Matrix</title>
-<meta name="description" content="Full index of ${rows.length} audited alternative exchange entities with tier ratings and conflict vectors.">
+<title>Exchange Directory — ${BRAND}</title>
+<meta name="description" content="Full index of ${rows.length} audited alternative exchange platforms with tier ratings and conflict vectors.">
 <link rel="canonical" href="${SITE_URL}/directory/">
 <link rel="stylesheet" href="/style.css">
 ${HUB_STYLE}
 </head>
 <body>
-<header><h1>Entity Directory</h1><p>Trust & Escrow Authority · ${rows.length} Entities Under Audit</p></header>
+<header><h1>Exchange Directory</h1><p>${BRAND} · ${rows.length} Platforms Under Audit</p></header>
 <main class="hub">
-<a class="hub-cta" href="/">Open Interactive Risk Calculator →</a>
-<input type="text" id="filter" placeholder="Filter by entity, tier, or category…">
+<a class="top-back" href="/">← Back to Home</a>
+<a class="hub-cta" href="/">Open the Interactive Calculator →</a>
+<input type="text" id="filter" placeholder="Filter by platform, tier, or category…">
 <ul id="list">${indexListHtml}</ul>
+<div class="pagination">
+  <button id="prevBtn" disabled>← Previous</button>
+  <span class="page-info" id="pageInfo">Page 1 of ${totalPages}</span>
+  <button id="nextBtn">Next →</button>
+</div>
 </main>
 ${FOOTER}
 <script>
-document.getElementById('filter').addEventListener('keyup', (e) => {
+const ITEMS_PER_PAGE = ${ITEMS_PER_PAGE};
+let currentPage = 1;
+const list = document.getElementById('list');
+const items = Array.from(list.querySelectorAll('li'));
+const filterInput = document.getElementById('filter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const pageInfo = document.getElementById('pageInfo');
+
+function applyPagination() {
+  const filtered = items.filter(li => li.style.display !== 'none');
+  const totalFiltered = filtered.length;
+  const totalPagesNow = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+  if (currentPage > totalPagesNow) currentPage = totalPagesNow;
+  items.forEach(li => {
+    if (li.style.display === 'none') { li.dataset.paginated = 'hidden'; return; }
+    li.dataset.paginated = 'visible';
+  });
+  const visible = items.filter(li => li.dataset.paginated === 'visible');
+  visible.forEach((li, i) => {
+    li.style.display = (i >= (currentPage - 1) * ITEMS_PER_PAGE && i < currentPage * ITEMS_PER_PAGE) ? 'block' : 'none';
+  });
+  pageInfo.textContent = \`Page \${currentPage} of \${totalPagesNow}\`;
+  prevBtn.disabled = currentPage === 1;
+  nextBtn.disabled = currentPage >= totalPagesNow;
+}
+
+filterInput.addEventListener('keyup', (e) => {
   const f = e.target.value.toLowerCase();
-  document.querySelectorAll('#list li').forEach(li => {
+  items.forEach(li => {
     const hay = (li.dataset.search || li.innerText).toLowerCase();
     li.style.display = hay.includes(f) ? 'block' : 'none';
   });
+  currentPage = 1;
+  applyPagination();
 });
+
+prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); } });
+nextBtn.addEventListener('click', () => { currentPage++; applyPagination(); window.scrollTo({top: 400, behavior: 'smooth'}); });
+
+applyPagination();
 </script>
 </body>
 </html>`;
@@ -193,6 +245,7 @@ for (const post of EDITORIAL) {
 <body>
 <header><h1>${post.title}</h1><p>${post.author} · ${post.role} · ${post.date}</p></header>
 <main>
+<a class="top-back" href="/">← Back to Home</a>
 <p class="ai-hook">${post.excerpt}</p>
 ${bodyHtml}
 <p class="disclaimer">This material is informational only and is not financial, legal, or investment advice.</p>
@@ -211,7 +264,7 @@ const advisoryIndex = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Advisory Index — Trust & Escrow Authority</title>
+<title>Advisory Index — ${BRAND}</title>
 <meta name="description" content="Operational guidance from the Trust & Escrow analysis desk. Informational only.">
 <link rel="canonical" href="${SITE_URL}/advisory/">
 <link rel="stylesheet" href="/style.css">
@@ -220,6 +273,7 @@ ${HUB_STYLE}
 <body>
 <header><h1>Advisory</h1><p>Trust & Escrow Analysis Desk · Editorial</p></header>
 <main class="hub">
+<a class="top-back" href="/">← Back to Home</a>
 <p style="color:var(--muted);margin:0 0 24px">Operational guidance on escrow mechanics, fee architecture, chargeback defense, and custody taxonomy. Informational only; not financial advice.</p>
 <ul>${advisoryListHtml}</ul>
 </main>
@@ -230,9 +284,9 @@ fs.writeFileSync(path.join(OUT_DIR, 'advisory', 'index.html'), advisoryIndex);
 sitemapItems.push(`${SITE_URL}/advisory/`);
 
 const extraPages = [
-  ['about', 'About the Authority', '<p>The Alternative Exchange Risk Matrix is an independent, informational trust-and-escrow audit layer for alternative asset marketplaces: gift cards, peer-to-peer venues, crypto on-ramps, and fractional hard assets.</p><p>We never process transactions, hold payments, or custody funds. Every entity is scored across a 15-column quantitative matrix covering fee bands, booking risk, escrow mechanics, and routine conflict vectors. Monetization is limited to referral traffic, affiliate links to verified platforms, and sponsored directory listings.</p>'],
-  ['contact', 'Contact', '<p>Data corrections and editorial inquiries: <a href="mailto:audit@exchangelot.netlify.app">audit@exchangelot.netlify.app</a></p><p>Sponsored directory inquiries must include: entity name, jurisdiction of registration, and escrow or custody documentation.</p>'],
-  ['privacy', 'Privacy Protocol', '<p>This platform is privacy-first by architecture. The interactive risk calculator executes 100% client-side: no search query, profile selection, or pasted exchange detail ever leaves your device.</p><p>We set no advertising cookies, run no third-party analytics, and store no session data. Static pages are served from CDN edge cache with zero tracking pixels.</p>']
+  ['about', 'About', `<p>${BRAND} is an independent, informational trust-and-escrow audit layer for alternative asset marketplaces: gift cards, peer-to-peer venues, crypto on-ramps, and fractional hard assets.</p><p>We never process transactions, hold payments, or custody funds. Every platform is scored across a 15-column quantitative matrix covering fee bands, booking risk, escrow mechanics, and routine conflict vectors. Monetization is limited to referral traffic, affiliate links to verified platforms, and sponsored directory listings.</p>`],
+  ['contact', 'Contact', '<p>Data corrections and editorial inquiries: <a href="mailto:audit@exchangelot.netlify.app">audit@exchangelot.netlify.app</a></p><p>Sponsored directory inquiries must include: platform name, jurisdiction of registration, and escrow or custody documentation.</p>'],
+  ['privacy', 'Privacy Protocol', '<p>This platform is privacy-first by architecture. The interactive calculator executes 100% client-side: no search query, profile selection, or pasted exchange detail ever leaves your device.</p><p>We set no advertising cookies, run no third-party analytics, and store no session data. Static pages are served from CDN edge cache with zero tracking pixels.</p>']
 ];
 for (const [slug, title, body] of extraPages) {
   const pageHtml = `<!DOCTYPE html>
@@ -240,16 +294,17 @@ for (const [slug, title, body] of extraPages) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title} — Exchange Risk Matrix</title>
-<meta name="description" content="${title} page of the Alternative Exchange Risk Matrix, an independent trust and escrow audit layer.">
+<title>${title} — ${BRAND}</title>
+<meta name="description" content="${title} page of ${BRAND}.">
 <link rel="canonical" href="${SITE_URL}/${slug}.html">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header><h1>${title}</h1><p>Trust & Escrow Authority</p></header>
+<header><h1>${title}</h1><p>${BRAND}</p></header>
 <main>
+<a class="top-back" href="/">← Back to Home</a>
 ${body}
-<p class="foot"><a href="/directory/">← Back to Entity Directory</a></p>
+<p class="foot"><a href="/directory/">← Back to Exchange Directory</a></p>
 </main>
 ${FOOTER}
 </body>
@@ -286,6 +341,6 @@ for (const f of fs.readdirSync(ROOT_DIR)) {
 console.log(`\n[SUCCESS] Build Engine Complete.`);
 console.log(`- Entities compiled: ${rows.length}`);
 console.log(`- Advisory posts: ${EDITORIAL.length}`);
-console.log(`- Static pages: ${rows.length} + directory + advisory + 3 auxiliary`);
+console.log(`- Directory pagination: ${ITEMS_PER_PAGE} items/page, ${totalPages} pages`);
 console.log(`- Sitemap chunks: ${Math.ceil(sitemapItems.length / chunkSize)}`);
 console.log(`- Output directory: ./dist`);
