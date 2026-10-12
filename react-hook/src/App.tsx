@@ -91,7 +91,7 @@ export default function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const volatileEntities = data.filter((e) => e.safety_alert_tier === 'VOLATILE');
+  
   const tierCounts = {
     INERT: data.filter((e) => e.safety_alert_tier === 'INERT').length,
     'REACTION-RISK': data.filter((e) => e.safety_alert_tier === 'REACTION-RISK').length,
@@ -143,27 +143,10 @@ export default function App() {
             <span className="stat-label">Bytes leave your device</span>
           </div>
         </div>
-        <div className="cta-row">
-          <a className="hub-cta" href="/directory/">Browse Full Exchange Directory →</a>
-        </div>
+        
       </header>
 
-      <div className="marquee-shell" aria-hidden="true">
-        <div className="marquee-track">
-          {[0, 1].map((half) => (
-            <div className="marquee-half" key={half}>
-              <span className="marquee-label">Live volatile watch</span>
-              {volatileEntities.map((e) => (
-                <span className="ticker-item" key={`${half}-${e.id}`}>
-                  <i className="dot" />
-                  {e.entity_name} — {e.routine_conflict}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-
+      
       <main className="content">
         {/* ROTATING 5-ITEM PREVIEW */}
         <section className="preview-section panel">
