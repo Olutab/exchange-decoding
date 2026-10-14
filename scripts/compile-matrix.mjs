@@ -79,6 +79,12 @@ function pick(arr, seed) {
   return arr[h % arr.length];
 }
 
+function hashString(s) {
+  let h = 0;
+  for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h;
+}
+
 function humanize(s) {
   let out = s.replace(/^./, (c) => c.toLowerCase());
   const swaps = [
@@ -98,6 +104,29 @@ function feeSentence(range) {
   if (!m) return `Fees here usually sit around ${range}.`;
   const lo = Number(m[1]); const hi = Number(m[2]);
   return `Fees here usually run ${lo}% to ${hi}% of the deal. On a $100 trade that is about $${lo} to $${hi}. On a $1,000 trade it is $${lo * 10} to $${hi * 10}. Whether that is cheap or expensive depends entirely on what protection you get for it — which is exactly what the next paragraph is about.`;
+}
+
+function getCrossLinks(currentSlug, currentCategory, allRows) {
+  const inert = allRows.filter(r => r.safety_alert_tier === 'INERT' && r.exchange_slug !== currentSlug);
+  const sameCat = inert.filter(r => r.functional_category === currentCategory);
+  const otherCat = inert.filter(r => r.functional_category !== currentCategory);
+  
+  const seed = hashString(currentSlug);
+  const picks = [];
+  
+  // Get up to 2 from same category
+  for (let i = 0; i < 2 && i < sameCat.length; i++) {
+    const idx = (seed + i * 7) % sameCat.length;
+    picks.push(sameCat[idx]);
+  }
+  
+  // Fill remaining with other categories
+  for (let i = 0; i < 3 - picks.length && i < otherCat.length; i++) {
+    const idx = (seed + (i + 10) * 13) % otherCat.length;
+    picks.push(otherCat[idx]);
+  }
+  
+  return picks.slice(0, 3);
 }
 
 // ---- Data load & validation ----
@@ -129,7 +158,7 @@ fs.rmSync(path.join(OUT_DIR, 'app'), { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT_DIR, 'directory'), { recursive: true });
 fs.mkdirSync(path.join(OUT_DIR, 'advisory'), { recursive: true });
 
-const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap');:root{--bg:#05070c;--panel:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);--text:#eef2f8;--muted:#9aa4b2;--cyan:#22d3ee;--violet:#818cf8}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.75;background:radial-gradient(1000px 460px at 88% -12%,rgba(129,140,248,.15),transparent 62%),radial-gradient(820px 420px at 4% 8%,rgba(34,211,238,.10),transparent 60%),var(--bg)}header,main{max-width:880px;margin:0 auto;padding:0 24px}header{padding:64px 24px 30px;border-bottom:1px solid var(--border)}header h1{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;letter-spacing:-.02em;margin:0 0 8px}header p{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin:0}.ai-hook{margin:40px 0 0;padding:24px 28px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:16px;backdrop-filter:blur(12px);font-size:1.04rem}.cellular,.regimen{color:var(--muted);margin:24px 4px}.cellular strong,.regimen strong{color:var(--text)}details{margin:36px 0 24px;padding:8px 24px;background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px)}summary{cursor:pointer;padding:14px 0;color:var(--cyan);font-weight:600}.foot{margin:0 0 40px}.disclaimer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:32px}a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(34,211,238,.35)}a:hover{color:var(--violet)}.site-foot{max-width:880px;margin:0 auto;padding:20px 24px 64px}.site-foot nav{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:26px}.site-foot a{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);border-bottom:none}.site-foot a:hover{color:var(--cyan)}.hub-cta{display:inline-block;margin:6px 0 26px;padding:14px 26px;border-radius:999px;background:linear-gradient(94deg,var(--cyan),var(--violet));color:#041014;font-weight:700;border-bottom:none}.hub-cta:hover{color:#041014;filter:brightness(1.1)}.check{margin:28px 4px;padding:20px 26px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:16px}.check h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;margin:0 0 10px}.check ul{margin:0;padding-left:20px}.check li{margin:9px 0;color:var(--muted)}`;
+const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap');:root{--bg:#05070c;--panel:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);--text:#eef2f8;--muted:#9aa4b2;--cyan:#22d3ee;--violet:#818cf8}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.75;background:radial-gradient(1000px 460px at 88% -12%,rgba(129,140,248,.15),transparent 62%),radial-gradient(820px 420px at 4% 8%,rgba(34,211,238,.10),transparent 60%),var(--bg)}header,main{max-width:880px;margin:0 auto;padding:0 24px}header{padding:64px 24px 30px;border-bottom:1px solid var(--border)}header h1{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;letter-spacing:-.02em;margin:0 0 8px}header p{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin:0}.ai-hook{margin:40px 0 0;padding:24px 28px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:16px;backdrop-filter:blur(12px);font-size:1.04rem}.cellular,.regimen{color:var(--muted);margin:24px 4px}.cellular strong,.regimen strong{color:var(--text)}details{margin:36px 0 24px;padding:8px 24px;background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px)}summary{cursor:pointer;padding:14px 0;color:var(--cyan);font-weight:600}.foot{margin:0 0 40px}.disclaimer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:32px}a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(34,211,238,.35)}a:hover{color:var(--violet)}.site-foot{max-width:880px;margin:0 auto;padding:20px 24px 64px}.site-foot nav{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:26px}.site-foot a{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);border-bottom:none}.site-foot a:hover{color:var(--cyan)}.hub-cta{display:inline-block;margin:6px 0 26px;padding:14px 26px;border-radius:999px;background:linear-gradient(94deg,var(--cyan),var(--violet));color:#041014;font-weight:700;border-bottom:none}.hub-cta:hover{color:#041014;filter:brightness(1.1)}.check{margin:28px 4px;padding:20px 26px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:16px}.check h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;margin:0 0 10px}.check ul{margin:0;padding-left:20px}.check li{margin:9px 0;color:var(--muted)}.seealso{margin:24px 4px;padding:16px 20px;background:rgba(34,211,238,.05);border:1px solid rgba(34,211,238,.2);border-radius:12px;font-size:.95rem;color:var(--text)}`;
 fs.writeFileSync(path.join(OUT_DIR, 'style.css'), css);
 
 const FOOTER = `<footer class="site-foot"><nav><a href="/">Home</a><a href="/directory/">Exchange Directory</a><a href="/advisory/">Advisory</a><a href="/about.html">About</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy</a></nav></footer>`;
@@ -194,6 +223,11 @@ for (const row of rows) {
   const p2 = autoLink(fees + ' ' + rating, row.exchange_slug);
   const p3 = autoLink(warn + ' ' + fit, row.exchange_slug);
 
+  const crossLinks = getCrossLinks(row.exchange_slug, row.functional_category, rows);
+  const seeAlsoHtml = crossLinks.length > 0 
+    ? `<p class="seealso">Want more options in this space? You can also check <a href="/${crossLinks[0].exchange_slug}.html">${crossLinks[0].entity_name}</a>, <a href="/${crossLinks[1].exchange_slug}.html">${crossLinks[1].entity_name}</a>, or <a href="/${crossLinks[2].exchange_slug}.html">${crossLinks[2].entity_name}</a> — all rated Escrow-Backed.</p>`
+    : '';
+
   const faqAnswer = `It is a real, operating platform, and "legit" and "safe" are not the same question. Its risk shape is ${alias}: ${TIER_SHORT[row.safety_alert_tier]}. Follow the checklist on this page and most of the usual failure stories stop applying to you.`;
 
   const jsonLd = [
@@ -225,6 +259,7 @@ for (const row of rows) {
 <p class="ai-hook">${p1}</p>
 <p class="cellular">${p2}</p>
 <p class="cellular">${p3}</p>
+${seeAlsoHtml}
 <div class="check"><h2>Before you send money to ${row.entity_name}</h2><ul>${checks.map(c => `<li>${c}</li>`).join('')}</ul></div>
 <details><summary>Is ${row.entity_name} legit?</summary><p>${faqAnswer}</p></details>
 <p class="disclaimer">This material is informational only and is not financial, legal, or investment advice.</p>
