@@ -20,6 +20,87 @@ const VALID_CATEGORIES = ['direct_platform', 'escrow_intermediary', 'peer_to_pee
 const VALID_TIERS = ['INERT', 'REACTION-RISK', 'VOLATILE'];
 const TIER_ALIAS = { 'INERT': 'Escrow-Backed', 'REACTION-RISK': 'Verify-First', 'VOLATILE': 'No-Recourse' };
 
+// ---- Human voice library ----
+const CAT_PLAIN = {
+  direct_platform: 'a direct marketplace — you buy or sell straight through the site itself',
+  escrow_intermediary: 'a middleman service that holds the money between buyer and seller until both sides are happy',
+  peer_to_peer_marketplace: 'a person-to-person marketplace — the site introduces you, but you deal with a stranger',
+  gift_card_specialist: 'a specialist in buying and selling gift cards',
+  crypto_on_ramp: 'an entry point where regular money goes in and crypto comes out',
+  multi_asset_aggregator: 'a multi-asset marketplace for cards, collectibles and other hard-to-price goods'
+};
+
+const TIER_PLAIN = {
+  'INERT': 'Escrow-Backed is the safest shape a deal can take. Money or goods sit with a neutral holder until both sides confirm the deal is done. If something goes wrong, there is already a pot of value set aside to make it right.',
+  'REACTION-RISK': 'Verify-First means the platform gives you real protection tools, but they only switch on when you use them. Nothing here is automatic. You check the seller, you check the hold, you keep the receipts.',
+  'VOLATILE': 'No-Recourse is the blunt one. Once your money or goods leave your hands, there is no button to press and no support ticket that brings them back. People do use sites like this successfully — with small amounts and eyes open.'
+};
+
+const TIER_SHORT = {
+  'INERT': 'your money sits with a neutral holder until the deal is confirmed, so there is a built-in safety net',
+  'REACTION-RISK': 'the protection tools exist but only work when you use them — check the hold and the seller yourself',
+  'VOLATILE': 'once value leaves your hands there is no reversal, so treat every deposit as money you might not see again'
+};
+
+const CHECKS = {
+  'INERT': [
+    'Open the deal inside the platform and wait for the confirmation that funds or goods are actually held. Never act on a screenshot your counterparty sends you.',
+    'Keep every message on the platform. Off-platform chat is where protection goes to die.',
+    'Before you ship or release anything, re-read the release conditions on the hold screen. Those are the only rules that will be enforced.'
+  ],
+  'REACTION-RISK': [
+    'Check the other side first: account age, completed deals, reviews. A brand-new account with a perfect price is the classic bait.',
+    'Confirm the hold or escrow in writing inside the platform before you release anything digital or ship anything physical.',
+    'If anyone asks you to move the payment off-platform "to save fees", that is the scam talking, not the platform.'
+  ],
+  'VOLATILE': [
+    'Start with an amount you can afford to lose completely. This rating means there is no undo button.',
+    'Never prepay for "reserved" or "held" stock that the platform itself does not show as verified.',
+    'Assume no chargebacks and no reversals. If that thought makes you uncomfortable, that is your answer — pick a different venue.'
+  ]
+};
+
+const OPENERS = [
+  (n, cat) => `${n} is ${cat}. You create an account, you make a deal, you follow the site's own steps to finish it. Simple idea — but the details below are where people either save money or lose it.`,
+  (n, cat) => `Here is the short version: ${n} is ${cat}. Everything on this page is about what that actually means for your money.`,
+  (n, cat) => `If someone sent you a link to ${n} and you are wondering what it even is — it is ${cat}. This page tells you what it costs, where the risk sits, and what to check before you commit a single dollar.`,
+  (n, cat) => `${n}? It is ${cat}. Some people use it every week without trouble. Some people lose money on it. The difference is almost never luck — it is whether they knew the rules before they deposited.`
+];
+
+const WARNINGS = [
+  (n, c) => `Now the part most review pages skip. The most common way people get hurt on ${n} is this: ${c}. Read that sentence once more before you deposit anything.`,
+  (n, c) => `Where do people actually lose money on ${n}? Almost always in the same place: ${c}. If any deal pushes you toward that, walk away.`,
+  (n, c) => `Every platform has one trap that catches most of its victims. On ${n}, it is this: ${c}. Knowing it in advance is most of the protection you will ever get.`
+];
+
+function pick(arr, seed) {
+  let h = 0;
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return arr[h % arr.length];
+}
+
+function humanize(s) {
+  let out = s.replace(/^./, (c) => c.toLowerCase());
+  const swaps = [
+    [/liquidations/gi, 'sales'], [/liquidation/gi, 'sale'],
+    [/facilitates/gi, 'handles'], [/facilitate/gi, 'handle'],
+    [/fiat/gi, 'regular money'],
+    [/custody/gi, 'safekeeping'],
+    [/KYC/g, 'ID checks'],
+    [/instant clearing/gi, 'fast payout'], [/clearing/gi, 'payout']
+  ];
+  for (const [re, to] of swaps) out = out.replace(re, to);
+  return out;
+}
+
+function feeSentence(range) {
+  const m = range.match(/(\d+)\s*%\s*[-–]\s*(\d+)\s*%/);
+  if (!m) return `Fees here usually sit around ${range}.`;
+  const lo = Number(m[1]); const hi = Number(m[2]);
+  return `Fees here usually run ${lo}% to ${hi}% of the deal. On a $100 trade that is about $${lo} to $${hi}. On a $1,000 trade it is $${lo * 10} to $${hi * 10}. Whether that is cheap or expensive depends entirely on what protection you get for it — which is exactly what the next paragraph is about.`;
+}
+
+// ---- Data load & validation ----
 const raw = fs.readFileSync(MATRIX_FILE, 'utf-8');
 const lines = raw.split('\n').map(l => l.replace(/\r/g, '')).filter(l => l.trim() !== '');
 const headers = lines[0].split('|').map(h => h.trim());
@@ -48,7 +129,7 @@ fs.rmSync(path.join(OUT_DIR, 'app'), { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT_DIR, 'directory'), { recursive: true });
 fs.mkdirSync(path.join(OUT_DIR, 'advisory'), { recursive: true });
 
-const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap');:root{--bg:#05070c;--panel:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);--text:#eef2f8;--muted:#9aa4b2;--cyan:#22d3ee;--violet:#818cf8}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.75;background:radial-gradient(1000px 460px at 88% -12%,rgba(129,140,248,.15),transparent 62%),radial-gradient(820px 420px at 4% 8%,rgba(34,211,238,.10),transparent 60%),var(--bg)}header,main{max-width:880px;margin:0 auto;padding:0 24px}header{padding:64px 24px 30px;border-bottom:1px solid var(--border)}header h1{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;letter-spacing:-.02em;margin:0 0 8px}header p{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin:0}.ai-hook{margin:40px 0 0;padding:24px 28px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:16px;backdrop-filter:blur(12px);font-size:1.04rem}.cellular,.regimen{color:var(--muted);margin:24px 4px}.cellular strong,.regimen strong{color:var(--text)}details{margin:36px 0 24px;padding:8px 24px;background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px)}summary{cursor:pointer;padding:14px 0;color:var(--cyan);font-weight:600}.foot{margin:0 0 40px}.disclaimer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:32px}a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(34,211,238,.35)}a:hover{color:var(--violet)}.site-foot{max-width:880px;margin:0 auto;padding:20px 24px 64px}.site-foot nav{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:26px}.site-foot a{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);border-bottom:none}.site-foot a:hover{color:var(--cyan)}.hub-cta{display:inline-block;margin:6px 0 26px;padding:14px 26px;border-radius:999px;background:linear-gradient(94deg,var(--cyan),var(--violet));color:#041014;font-weight:700;border-bottom:none}.hub-cta:hover{color:#041014;filter:brightness(1.1)}`;
+const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap');:root{--bg:#05070c;--panel:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);--text:#eef2f8;--muted:#9aa4b2;--cyan:#22d3ee;--violet:#818cf8}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.75;background:radial-gradient(1000px 460px at 88% -12%,rgba(129,140,248,.15),transparent 62%),radial-gradient(820px 420px at 4% 8%,rgba(34,211,238,.10),transparent 60%),var(--bg)}header,main{max-width:880px;margin:0 auto;padding:0 24px}header{padding:64px 24px 30px;border-bottom:1px solid var(--border)}header h1{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;letter-spacing:-.02em;margin:0 0 8px}header p{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin:0}.ai-hook{margin:40px 0 0;padding:24px 28px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:16px;backdrop-filter:blur(12px);font-size:1.04rem}.cellular,.regimen{color:var(--muted);margin:24px 4px}.cellular strong,.regimen strong{color:var(--text)}details{margin:36px 0 24px;padding:8px 24px;background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px)}summary{cursor:pointer;padding:14px 0;color:var(--cyan);font-weight:600}.foot{margin:0 0 40px}.disclaimer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:32px}a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(34,211,238,.35)}a:hover{color:var(--violet)}.site-foot{max-width:880px;margin:0 auto;padding:20px 24px 64px}.site-foot nav{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:26px}.site-foot a{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);border-bottom:none}.site-foot a:hover{color:var(--cyan)}.hub-cta{display:inline-block;margin:6px 0 26px;padding:14px 26px;border-radius:999px;background:linear-gradient(94deg,var(--cyan),var(--violet));color:#041014;font-weight:700;border-bottom:none}.hub-cta:hover{color:#041014;filter:brightness(1.1)}.check{margin:28px 4px;padding:20px 26px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:16px}.check h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;margin:0 0 10px}.check ul{margin:0;padding-left:20px}.check li{margin:9px 0;color:var(--muted)}`;
 fs.writeFileSync(path.join(OUT_DIR, 'style.css'), css);
 
 const FOOTER = `<footer class="site-foot"><nav><a href="/">Home</a><a href="/directory/">Exchange Directory</a><a href="/advisory/">Advisory</a><a href="/about.html">About</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy</a></nav></footer>`;
@@ -97,18 +178,27 @@ let indexListHtml = '';
 
 for (const row of rows) {
   const alias = TIER_ALIAS[row.safety_alert_tier];
-  const p1 = `The structural analysis of the exchange component <strong>${row.entity_name}</strong> (commonly indexed as <em>${row.jargon_free_alias}</em>) categorizes it as a functional <strong>${row.functional_category}</strong>. Operating primarily within the <em>${row.penetration_impact_layer}</em> at a typical range of <em>${row.typical_fee_range}</em>, this component carries a <strong>${row.safety_alert_tier}</strong> (${alias}) classification for skin-to-skin user profile compatibility.`;
-  const p2 = `Mechanically, this platform directly impacts the <strong>${row.target_user_profile}</strong> by ${row.clear_mechanism_note.toLowerCase()} during multi-step operational delays or verification holds.`;
-  const p3 = `Pairing this entity with <strong>${row.synergy_pairing}</strong> fortifies transfer efficiency. However, users must avoid combining it with <strong>${row.routine_conflict}</strong> to eliminate immediate disruption vectors.`;
+  const catPlain = CAT_PLAIN[row.functional_category] || row.functional_category.replace(/_/g, ' ');
+  const prof = row.target_user_profile.toLowerCase();
+  const art = /^[aeiou]/.test(prof) ? 'an' : 'a';
 
-  const linkedP1 = autoLink(p1, row.exchange_slug);
-  const linkedP2 = autoLink(p2, row.exchange_slug);
-  const linkedP3 = autoLink(p3, row.exchange_slug);
+  const opener = pick(OPENERS, row.exchange_slug)(row.entity_name, catPlain);
+  const mech = `In one sentence, what it does: ${humanize(row.clear_mechanism_note)}.`;
+  const fees = feeSentence(row.typical_fee_range);
+  const rating = `What our rating means: ${TIER_PLAIN[row.safety_alert_tier]}`;
+  const warn = pick(WARNINGS, row.exchange_slug)(row.entity_name, row.routine_conflict);
+  const fit = `Who it fits: this site works best for ${art} ${prof}. If that is not you, the fees and the rules will feel like friction for nothing.`;
+  const checks = CHECKS[row.safety_alert_tier];
+
+  const p1 = autoLink(opener + ' ' + mech, row.exchange_slug);
+  const p2 = autoLink(fees + ' ' + rating, row.exchange_slug);
+  const p3 = autoLink(warn + ' ' + fit, row.exchange_slug);
+
+  const faqAnswer = `It is a real, operating platform, and "legit" and "safe" are not the same question. Its risk shape is ${alias}: ${TIER_SHORT[row.safety_alert_tier]}. Follow the checklist on this page and most of the usual failure stories stop applying to you.`;
 
   const jsonLd = [
-    { "@context": "https://schema.org", "@type": "TechArticle", "headline": `${row.entity_name} — Exchange Mechanics Decode`, "description": row.clear_mechanism_note },
-    { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{ "@type": "Question", "name": `Is ${row.entity_name} safe for ${row.target_user_profile}?`, "acceptedAnswer": { "@type": "Answer", "text": `It carries a ${alias} (${row.safety_alert_tier}) rating. Watch out for ${row.routine_conflict}.` } }] },
-    { "@context": "https://schema.org", "@type": "MedicalWebPage", "name": `${row.entity_name} Trust & Escrow Analysis`, "description": row.clear_mechanism_note }
+    { "@context": "https://schema.org", "@type": "Article", "headline": `${row.entity_name} review: fees, real risks, and what to check first`, "description": `${row.entity_name} is ${catPlain}. Fees run ${row.typical_fee_range}. Rating: ${alias}.` },
+    { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{ "@type": "Question", "name": `Is ${row.entity_name} legit?`, "acceptedAnswer": { "@type": "Answer", "text": faqAnswer } }] }
   ];
 
   const html = `<!DOCTYPE html>
@@ -117,10 +207,10 @@ for (const row of rows) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="index, follow">
-<title>${row.entity_name} — ${BRAND}</title>
-<meta name="description" content="${row.clear_mechanism_note}">
-<meta property="og:title" content="${row.entity_name} — ${BRAND}">
-<meta property="og:description" content="${row.clear_mechanism_note}">
+<title>${row.entity_name} Review: Fees, Risks & What To Check First — ${BRAND}</title>
+<meta name="description" content="${row.entity_name} is ${catPlain}. Fees run ${row.typical_fee_range}. Rating: ${alias}. Read the plain-English review before you deposit.">
+<meta property="og:title" content="${row.entity_name} — plain-English review">
+<meta property="og:description" content="Fees, real risks, and a before-you-pay checklist for ${row.entity_name}.">
 <meta property="og:image" content="${SITE_URL}/og-image.png">
 <meta property="og:type" content="article">
 <meta name="twitter:card" content="summary_large_image">
@@ -130,12 +220,13 @@ for (const row of rows) {
 <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 </head>
 <body>
-<header><h1>${row.entity_name}</h1><p>${BRAND} · ${alias}</p></header>
+<header><h1>${row.entity_name}</h1><p>${alias} rating · plain-English review</p></header>
 <main>
-<p class="ai-hook">${linkedP1}</p>
-<p class="cellular">${linkedP2}</p>
-<p class="regimen">${linkedP3}</p>
-<details><summary>Is ${row.entity_name} safe for ${row.target_user_profile}?</summary><p>It carries a <strong>${alias}</strong> (${row.safety_alert_tier}) rating. ⚠️ Watch out for ${row.routine_conflict}.</p></details>
+<p class="ai-hook">${p1}</p>
+<p class="cellular">${p2}</p>
+<p class="cellular">${p3}</p>
+<div class="check"><h2>Before you send money to ${row.entity_name}</h2><ul>${checks.map(c => `<li>${c}</li>`).join('')}</ul></div>
+<details><summary>Is ${row.entity_name} legit?</summary><p>${faqAnswer}</p></details>
 <p class="disclaimer">This material is informational only and is not financial, legal, or investment advice.</p>
 <p class="foot"><a href="/directory/">← Back to Exchange Directory</a></p>
 </main>
@@ -280,7 +371,7 @@ ${HUB_STYLE}
 <header><h1>Advisory</h1><p>Trust & Escrow Analysis Desk · Editorial</p></header>
 <main class="hub">
 <a class="top-back" href="/">← Back to Home</a>
-<p style="color:var(--muted);margin:0 0 24px">Operational guidance on escrow mechanics, fee architecture, chargeback defense, and custody taxonomy. Informational only; not financial advice.</p>
+<p style="color:var(--muted);margin:0 0 24px">Plain-English guidance on escrow mechanics, fee architecture, chargeback defense, and custody. Informational only; not financial advice.</p>
 <ul>${advisoryListHtml}</ul>
 </main>
 ${FOOTER}
