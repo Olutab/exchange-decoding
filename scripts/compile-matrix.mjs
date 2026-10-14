@@ -346,6 +346,7 @@ if (fs.existsSync(ogSource)) fs.copyFileSync(ogSource, path.join(OUT_DIR, 'og-im
 for (const f of fs.readdirSync(ROOT_DIR)) {
   if (/^google[0-9a-f]+\.html$/.test(f)) fs.copyFileSync(path.join(ROOT_DIR, f), path.join(OUT_DIR, f));
 }
+
 // ---- Rich static homepage (SEO + humans) ----
 const tierCount = { 'INERT': 0, 'REACTION-RISK': 0, 'VOLATILE': 0 };
 rows.forEach(r => { tierCount[r.safety_alert_tier]++; });
@@ -512,18 +513,9 @@ for (let i = 0; i < sitemapItems.length; i += chunkSize) {
   sitemapIndex2 += `<sitemap><loc>${SITE_URL}/sitemap-${n}.xml</loc></sitemap>\n`;
 }
 sitemapIndex2 += `</sitemapindex>`;
-fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), sitemapIndex2);sitemapItems.push(`${SITE_URL}/`);
+fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), sitemapIndex2);
 
-// Rewrite sitemaps so the homepage URL is included
-let sitemapIndex2 = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-for (let i = 0; i < sitemapItems.length; i += chunkSize) {
-  const n = (i / chunkSize) + 1;
-  const chunk = sitemapItems.slice(i, i + chunkSize);
-  fs.writeFileSync(path.join(OUT_DIR, `sitemap-${n}.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${chunk.map(u => `<url><loc>${u}</loc></url>`).join('\n')}\n</urlset>`);
-  sitemapIndex2 += `<sitemap><loc>${SITE_URL}/sitemap-${n}.xml</loc></sitemap>\n`;
-}
-sitemapIndex2 += `</sitemapindex>`;
-fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), sitemapIndex2);console.log(`\n[SUCCESS] Build Engine Complete.`);
+console.log(`\n[SUCCESS] Build Engine Complete.`);
 console.log(`- Entities compiled: ${rows.length}`);
 console.log(`- Advisory posts: ${EDITORIAL.length}`);
 console.log(`- Directory pagination: ${ITEMS_PER_PAGE} items/page, ${totalPages} pages`);
