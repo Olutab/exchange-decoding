@@ -352,7 +352,7 @@ rows.forEach(r => { tierCount[r.safety_alert_tier]++; });
 const catCount = {};
 rows.forEach(r => { catCount[r.functional_category] = (catCount[r.functional_category] || 0) + 1; });
 
-const previewCards = rows.slice(0, 10).map(row => {
+const previewCards = rows.map(row => {
   const t = row.safety_alert_tier.toLowerCase();
   return `<a class="pv-card" href="/${row.exchange_slug}.html" data-pv><span class="pv-badge b-${t}">${TIER_ALIAS[row.safety_alert_tier]}</span><h4>${row.entity_name}</h4><p>${row.clear_mechanism_note}</p></a>`;
 }).join('');
@@ -381,7 +381,13 @@ const rootHtml = `<!DOCTYPE html>
 <link rel="canonical" href="${SITE_URL}/">
 <link rel="stylesheet" href="/style.css">
 <style>
-.hero2{max-width:980px;margin:0 auto;padding:56px 24px 8px;text-align:center}
+.aurora{position:fixed;inset:0;pointer-events:none;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(720px 420px at 50% 0%,#000 0%,transparent 78%);-webkit-mask-image:radial-gradient(720px 420px at 50% 0%,#000 0%,transparent 78%)}
+header{max-width:1100px;text-align:center;padding:88px 24px 10px;border-bottom:none}
+header h1{font-size:clamp(2.6rem,6vw,4.2rem);line-height:1.05}
+header h1 .g{background:linear-gradient(94deg,var(--cyan),var(--violet) 58%,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{margin-top:12px;font-size:1.05rem}
+.eyebrow{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--cyan);border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.06);border-radius:999px;padding:8px 18px;margin-bottom:22px}
+.rotor{color:var(--cyan);font-weight:600;display:inline-block;min-width:110px;text-align:left;transition:opacity .25s}
 .stat-row{display:flex;justify-content:center;flex-wrap:wrap;margin-top:34px}
 .stat{padding:0 38px;display:flex;flex-direction:column;gap:6px}
 .stat+.stat{border-left:1px solid var(--border)}
@@ -430,20 +436,23 @@ const rootHtml = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-<header><h1>The Exchange Trust Index</h1><p>Independent Audit Layer · Not Financial Advice</p></header>
-<section class="hero2">
-  <div class="stat-row">
-    <div class="stat"><b>5,842</b><span>Risk signals decoded</span></div>
-    <div class="stat"><b>${rows.length}</b><span>Platforms under audit</span></div>
-    <div class="stat"><b>0</b><span>Bytes leave your device</span></div>
-  </div>
-  <div class="cta-row">
-    <a class="hub-cta" href="/directory/">Browse Exchange Directory →</a>
-    <a class="hub-cta" href="/app/">Open Interactive Calculator →</a>
-  </div>
-</section>
+<div class="aurora" aria-hidden="true"></div>
+<header>
+<span class="eyebrow">Independent Audit Layer · Not Financial Advice</span>
+<h1>The Exchange <span class="g">Trust Index</span></h1>
+<p>Opaque marketplaces, <span class="rotor" id="rotor">Decoded.</span></p>
+<div class="stat-row">
+  <div class="stat"><b>5,842</b><span>Risk signals decoded</span></div>
+  <div class="stat"><b>${rows.length}</b><span>Platforms under audit</span></div>
+  <div class="stat"><b>0</b><span>Bytes leave your device</span></div>
+</div>
+<div class="cta-row">
+  <a class="hub-cta" href="/directory/">Browse Exchange Directory →</a>
+  <a class="hub-cta" href="/app/">Open Interactive Calculator →</a>
+</div>
+</header>
 <section class="panel2">
-  <div class="phead"><h2>Live Audit Feed</h2><span class="tag">rotates every 4s</span></div>
+  <div class="phead"><h2>Live Audit Feed</h2><span class="tag">cycles all ${rows.length} platforms</span></div>
   <div class="pv-grid">${previewCards}</div>
   <a class="see-all" href="/directory/">See all ${rows.length} platforms →</a>
 </section>
@@ -467,6 +476,17 @@ const rootHtml = `<!DOCTYPE html>
 ${FOOTER}
 <script>
 (function(){
+  var w = ['Decoded.','Secured.','Audited.','Verified.'];
+  var i = 0;
+  var el = document.getElementById('rotor');
+  if (!el) return;
+  setInterval(function(){
+    i = (i + 1) % w.length;
+    el.style.opacity = 0;
+    setTimeout(function(){ el.textContent = w[i]; el.style.opacity = 1; }, 250);
+  }, 2400);
+})();
+(function(){
   var cards = document.querySelectorAll('[data-pv]');
   if (!cards.length) return;
   var i = 0;
@@ -482,6 +502,17 @@ ${FOOTER}
 </html>`;
 fs.writeFileSync(path.join(OUT_DIR, 'index.html'), rootHtml);
 sitemapItems.push(`${SITE_URL}/`);
+
+// Rewrite sitemaps so the homepage URL is included
+let sitemapIndex2 = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+for (let i = 0; i < sitemapItems.length; i += chunkSize) {
+  const n = (i / chunkSize) + 1;
+  const chunk = sitemapItems.slice(i, i + chunkSize);
+  fs.writeFileSync(path.join(OUT_DIR, `sitemap-${n}.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${chunk.map(u => `<url><loc>${u}</loc></url>`).join('\n')}\n</urlset>`);
+  sitemapIndex2 += `<sitemap><loc>${SITE_URL}/sitemap-${n}.xml</loc></sitemap>\n`;
+}
+sitemapIndex2 += `</sitemapindex>`;
+fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), sitemapIndex2);sitemapItems.push(`${SITE_URL}/`);
 
 // Rewrite sitemaps so the homepage URL is included
 let sitemapIndex2 = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
